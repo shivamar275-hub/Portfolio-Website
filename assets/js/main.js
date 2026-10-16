@@ -80,6 +80,27 @@
   window.addEventListener('resize', onScroll);
   update();
 
+  /* ---- Card videos: load near the viewport, play only while visible ----- */
+  const vids = [...document.querySelectorAll('.card__vid')];
+  if (vids.length && !reduce && 'IntersectionObserver' in window) {
+    const small = window.matchMedia('(max-width: 760px)').matches;
+    const vio = new IntersectionObserver((entries) => {
+      entries.forEach(({ target: v, isIntersecting }) => {
+        if (isIntersecting) {
+          if (!v.src) {
+            v.src = small ? v.dataset.srcM : v.dataset.src;
+            v.addEventListener('playing', () => v.classList.add('is-playing'), { once: true });
+          }
+          const p = v.play();
+          if (p && p.catch) p.catch(() => {}); // autoplay blocked: the still image stays
+        } else if (v.src) {
+          v.pause();
+        }
+      });
+    }, { rootMargin: '300px 0px' });
+    vids.forEach((v) => vio.observe(v));
+  }
+
   /* ---- "View case study" cursor pill ----------------------------------- */
   const cursor = document.querySelector('[data-cursor]');
   if (cursor && finePointer && !reduce) {
