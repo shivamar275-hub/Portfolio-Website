@@ -3,14 +3,11 @@
 Static site: plain HTML, CSS and a small vanilla JS file. No build step, no dependencies.
 
 ```
-index.html              Homepage (built from the "Portfolio-Home Page" Figma frame)
 work/<project>/         Case studies: tandem, bitgrit, lumineve, rbl-mahindra, rbl-nova, cbps
-assets/css/style.css    Homepage styles; fluid from 1440px desktop down to phones
-assets/js/main.js       Homepage: scroll reveals, parallax, nav hide/show, ring spin, cursor pill
+index.html              Homepage: card stack, intro, cursor and all its styles/scripts are inline
 assets/css/case.css     Case study styles
 assets/js/case.js       Case studies: object reveals, parallax, idle float, cursor tilt, progress bar
-assets/svg/             Display type exported as exact vectors from Figma
-assets/img/             Project images, 1x and 2x
+assets/video/           Homepage card videos
 ```
 
 ## Preview locally
