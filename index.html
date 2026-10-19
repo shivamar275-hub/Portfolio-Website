@@ -376,7 +376,7 @@ const pad = n => String(n).padStart(2,"0");
 const mod = (a, n) => ((a % n) + n) % n;
 const art = (p, src) => `<div class="art" style="background:${p.bg}">${src ? `<img src="${src}" alt="" loading="lazy">` : `<span class="glyph" aria-hidden="true">${p.g}</span>`}</div>`;
 const media = p => p.video
-  ? `<div class="art" style="background:${p.bg}"><video src="${encodeURI(p.video)}" muted loop playsinline preload="metadata"></video></div>`
+  ? `<div class="art" style="background:${p.bg}"><video data-src="${encodeURI(p.video)}" poster="${p.video.replace("assets/video/","assets/video/posters/").replace(".mp4",".jpg")}" muted loop playsinline preload="none"></video></div>`
   : art(p);
 const roll = t => [...t].map((c,i)=>{ const ch = c===" " ? "&nbsp;" : c; return `<span class="ch" style="--i:${i}"><b>${ch}</b><b>${ch}</b></span>`; }).join("");
 const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -470,13 +470,22 @@ function setActive(a){
   if (!first){ num.classList.remove("in"); void num.offsetWidth; num.classList.add("in"); setTimeout(recheckEyes, 700); }
 }
 
-let last = performance.now();
+let last = performance.now(), lastKey = "";
+const load = v => { if (!v.src){ v.preload = "auto"; v.src = v.dataset.src; } };
 function frame(now){
   const dt = Math.min(64, now - last); last = now;
-  if (ready){ const k = reduce ? 1 : 1 - Math.pow(1 - .075, dt / 16.67); pos += (target - pos) * k; if (Math.abs(target - pos) < 1e-4) pos = target; nudge *= Math.pow(.86, dt / 16.67); if (Math.abs(nudge) < 1e-4) nudge = 0; }
+  if (ready){ const k = reduce ? 1 : 1 - Math.pow(1 - .075, dt / 16.67); pos += (target - pos) * k; if (Math.abs(target - pos) < 6e-4) pos = target; nudge *= Math.pow(.86, dt / 16.67); if (Math.abs(nudge) < 1e-4) nudge = 0; }
   const K = phone.matches ? KM : KD;
+  const key = (pos + nudge).toFixed(4) + (phone.matches ? "m" : "d"), moved = key !== lastKey; lastKey = key;
+  const ai = mod(Math.round(target), N), front = vids[ai], frontReady = !front || front.readyState >= 3;
   cards.forEach((c,i) => {
     const d = wrapD(i - (pos + nudge)), [, x, y, rx, ry, rz, s, o] = sample(K, d);
+    const v = vids[i];
+    if (v){
+      if (ready && i === ai){ load(v); if (v.paused && !v._pending){ v._pending = true; v.play().catch(()=>{}).finally(() => v._pending = false); } }
+      else { if (!v.paused) v.pause(); if (ready && frontReady && Math.abs(wrapD(i - target)) < 1.5) load(v); }
+    }
+    if (!moved) return;
     c.style.transform = `translate3d(${x}vw,${y}vh,0) perspective(1600px) rotateX(${rx}deg) rotateY(${ry}deg) rotateZ(${rz}deg) scale(${s})`;
     c.style.opacity = o;
     /* everything but the card in front sits a little in shadow, so the eye goes to one project */
@@ -485,8 +494,6 @@ function frame(now){
     c.style.pointerEvents = o < .3 ? "none" : "";
     c.classList.toggle("is-active", Math.abs(d) < .5);
     c.tabIndex = Math.abs(d) < .5 ? 0 : -1;
-    const v = vids[i];
-    if (v){ const want = o > .02 && ready; if (want && v.paused) v.play().catch(()=>{}); else if (!want && !v.paused) v.pause(); }
   });
   const a = mod(Math.round(target), N);
   if (a !== cur) setActive(a);
@@ -578,6 +585,7 @@ addEventListener("pointerdown", () => { cursor.classList.add("down"); blink(); }
 addEventListener("pointerup", () => cursor.classList.remove("down"));
 (function blinkLater(){ setTimeout(() => { blink(); if (Math.random() < .22) setTimeout(blink, 260); blinkLater(); }, 1800 + Math.random() * 3200); })();
 (function follow(){
+  if (Math.abs(mx-cx) + Math.abs(my-cy) + Math.abs(lx) + Math.abs(ly) < .05){ requestAnimationFrame(follow); return; }
   cx += (mx-cx)*.3; cy += (my-cy)*.3;
   /* pupils look the way you are moving, then drift back to the middle */
   const tx = Math.max(-1, Math.min(1, (mx - cx) / 40)), ty = Math.max(-1, Math.min(1, (my - cy) / 40));
